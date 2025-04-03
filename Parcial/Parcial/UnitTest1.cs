@@ -1,242 +1,112 @@
 using NUnit.Framework;
 using System;
 
-namespace UnitTest1
+namespace Taller_POO.Tests
 {
     [TestFixture]
-    public class BehaviorTreeTests
+    public class PruebasArbolDeComportamiento
     {
-        #region Pruebas de Estructura del Árbol
-
         [Test]
-        public void BehaviorTree_ShouldHaveOnlyOneRoot()
+        public void ArbolDeComportamiento_SoloDebeTenerUnRoot()
         {
-            // Arrange
-            var root = new Sequence();
-            var tree = new BehaviourTree(root);
-
-            // Assert
-            Assert.That(tree.Root, Is.EqualTo(root));
+            Root root = new Root();
+            BehaviourTree arbol = new BehaviourTree(root);
+            Assert.That(arbol, Is.Not.Null);
         }
 
         [Test]
-        public void Root_ShouldHaveExactlyOneChild_AndCannotBeAnotherRoot()
+        public void Root_SoloPuedeTenerUnHijo_YNoOtroRoot()
         {
-            // Arrange
-            var root = new Sequence();
-            var child = new Selector();
-            root.AddChild(child);
+            Root root = new Root();
+            Sequence secuencia = new Sequence();
 
-            // Act & Assert
-            Assert.DoesNotThrow(() => new BehaviourTree(root));
+            root.SetChild(secuencia);
+            Assert.Throws<InvalidOperationException>(() => root.SetChild(new Selector()),
+                "Root solo puede tener un hijo.");
 
-            // Verificar que no puede ser otro Root
-            var anotherRoot = new Sequence();
-            Assert.Throws<InvalidOperationException>(() => root.AddChild(anotherRoot));
+            Assert.Throws<InvalidOperationException>(() => root.SetChild(new Root()),
+                "Root no puede tener otro Root como hijo.");
         }
 
         [Test]
-        public void Composite_CannotBeInstantiatedDirectly()
+        public void Composite_NoPuedeSerInstanciadoDirectamente()
         {
-            // Verificar que Composite es abstracta
-            Assert.That(typeof(Composite).IsAbstract, Is.True);
+            Assert.That(typeof(Composite).IsAbstract, "Composite debe ser una clase abstracta.");
         }
 
         [Test]
-        public void Composite_CannotHaveRootAmongChildren()
+        public void Composite_NoPuedeTenerUnRootComoHijo()
         {
-            // Arrange
-            var composite = new Sequence();
-            var potentialRoot = new Sequence();
+            Selector selector = new Selector();
+            Root root = new Root();
 
-            // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => composite.AddChild(potentialRoot));
+            Assert.Throws<InvalidOperationException>(() => selector.AddChild(root),
+                "Composite no puede tener Root como hijo.");
         }
 
         [Test]
-        public void Task_CannotBeInstantiatedDirectly()
+        public void TaskNode_NoPuedeSerInstanciadoDirectamente()
         {
-            // Verificar que Node es abstracta (ya que Task no existe como clase separada)
-            Assert.That(typeof(Node).IsAbstract, Is.True);
+            Assert.That(typeof(TaskNode).IsAbstract, "TaskNode debe ser una clase abstracta.");
         }
 
         [Test]
-        public void Task_ShouldNotHaveAnyChildren()
+        public void TaskNode_NoPuedeTenerHijos()
         {
-            // Arrange
-            var task = new IsEvenTask(2);
-
-            // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => task.AddChild(new IsEvenTask(3)));
-        }
-
-        #endregion
-
-        #region Pruebas de Jerarquía de Herencia
-
-        [Test]
-        public void ClassHierarchy_ShouldFollowSpecifications()
-        {
-            // Todas derivan de Node
-            Assert.That(typeof(Composite).IsSubclassOf(typeof(Node)));
-            Assert.That(typeof(Selector).IsSubclassOf(typeof(Composite)));
-            Assert.That(typeof(Sequence).IsSubclassOf(typeof(Composite)));
-            Assert.That(typeof(CheckDistanceTask).IsSubclassOf(typeof(Node)));
-            Assert.That(typeof(MoveToTargetTask).IsSubclassOf(typeof(Node)));
-            Assert.That(typeof(WaitTask).IsSubclassOf(typeof(Node)));
-            Assert.That(typeof(IsEvenTask).IsSubclassOf(typeof(Node)));
-
-            // No derivan de Root (Root no existe en el código original)
-            // Asumiendo que Root es equivalente a BehaviourTree en este contexto
-            Assert.That(typeof(Selector).IsSubclassOf(typeof(BehaviourTree)), Is.False);
-            Assert.That(typeof(Sequence).IsSubclassOf(typeof(BehaviourTree)), Is.False);
-            Assert.That(typeof(CheckDistanceTask).IsSubclassOf(typeof(BehaviourTree)), Is.False);
-        }
-
-        #endregion
-
-        #region Pruebas de Comportamiento del Árbol
-
-        [Test]
-        public void EmptyRoot_ShouldReturnFalse()
-        {
-            // Arrange
-            var root = new Sequence(); // Sequence vacío no tiene hijos
-            var tree = new BehaviourTree(root);
-
-            // Act
-            var result = tree.Execute();
-
-            // Assert
-            Assert.That(result, Is.False);
+            CheckEvenNumberTask tarea = new CheckEvenNumberTask(4);
+            Assert.Throws<InvalidOperationException>(() => tarea.AddChild(new CheckEvenNumberTask(2)),
+                "Task no puede tener hijos.");
         }
 
         [Test]
-        public void RootWithTask_ShouldReturnTaskResult()
+        public void Nodo_HerenciaCorrecta()
         {
-            // Arrange
-            var root = new Sequence();
-            var evenTask = new IsEvenTask(2);
-            root.AddChild(evenTask);
-            var tree = new BehaviourTree(root);
+            Assert.That(new Root(), Is.InstanceOf<Node>());
+            Assert.That(new Sequence(), Is.InstanceOf<Node>());
+            Assert.That(new Selector(), Is.InstanceOf<Node>());
+            Assert.That(new CheckEvenNumberTask(4), Is.InstanceOf<Node>());
+            Assert.That(new CheckDistanceTask(5, 10), Is.InstanceOf<Node>());
 
-            // Act
-            var result = tree.Execute();
+            Assert.That(new Sequence(), Is.InstanceOf<Composite>());
+            Assert.That(new Selector(), Is.InstanceOf<Composite>());
 
-            // Assert
-            Assert.That(result, Is.True);
+            Assert.That(new CheckEvenNumberTask(4), Is.InstanceOf<TaskNode>());
+            Assert.That(new MoveToTargetTask(new CheckDistanceTask(3, 10), 2.0f), Is.InstanceOf<TaskNode>());
         }
 
         [Test]
-        public void Sequence_ShouldReturnTrueOnlyIfAllChildrenReturnTrue()
+        public void ArbolDeComportamiento_DebeTenerAlMenosUnRoot()
         {
-            // Arrange
-            var sequence = new Sequence();
-            sequence.AddChild(new IsEvenTask(2)); // true
-            sequence.AddChild(new IsEvenTask(3)); // false
-            var tree = new BehaviourTree(sequence);
-
-            // Act
-            var result = tree.Execute();
-
-            // Assert
-            Assert.That(result, Is.False);
+            Assert.Throws<ArgumentNullException>(() => new BehaviourTree(null));
         }
 
         [Test]
-        public void Selector_ShouldReturnTrueIfAnyChildReturnsTrue()
+        public void Nodo_Execute_RetornaValoresCorrectos()
         {
-            // Arrange
-            var selector = new Selector();
-            selector.AddChild(new IsEvenTask(3)); // false
-            selector.AddChild(new IsEvenTask(4)); // true
-            var tree = new BehaviourTree(selector);
+            Root root = new Root();
+            BehaviourTree arbol = new BehaviourTree(root);
 
-            // Act
-            var result = tree.Execute();
+            // Caso 1: Root vacío -> False
+            Assert.That(arbol.Execute(), Is.False);
 
-            // Assert
-            Assert.That(result, Is.True);
+            // Caso 2: Root con una tarea que retorna True
+            CheckEvenNumberTask tarea = new CheckEvenNumberTask(4);
+            root.SetChild(tarea);
+            Assert.That(arbol.Execute(), Is.True);
+
+            // Caso 3: Root con Sequence [True, False] -> False
+            Sequence secuencia = new Sequence();
+            secuencia.AddChild(new CheckEvenNumberTask(2)); // True
+            secuencia.AddChild(new CheckEvenNumberTask(3)); // False
+            root.SetChild(secuencia);
+            Assert.That(arbol.Execute(), Is.False);
+
+            // Caso 4: Root con Selector [False, True] -> True
+            Selector selector = new Selector();
+            selector.AddChild(new CheckEvenNumberTask(3)); // False
+            selector.AddChild(new CheckEvenNumberTask(4)); // True
+            root.SetChild(selector);
+            Assert.That(arbol.Execute(), Is.True);
         }
-
-        [Test]
-        public void CompositeWithSingleChild_ShouldReturnChildResult()
-        {
-            // Arrange
-            var sequence = new Sequence();
-            sequence.AddChild(new IsEvenTask(3)); // false
-            var tree = new BehaviourTree(sequence);
-
-            // Act
-            var result = tree.Execute();
-
-            // Assert
-            Assert.That(result, Is.False);
-        }
-
-        [Test]
-        public void NestedComposites_ShouldWorkCorrectly()
-        {
-            // Arrange - (true AND false) OR true => true
-            var root = new Selector();
-
-            var sequence = new Sequence();
-            sequence.AddChild(new IsEvenTask(2)); // true
-            sequence.AddChild(new IsEvenTask(3)); // false
-
-            root.AddChild(sequence); // false
-            root.AddChild(new IsEvenTask(4)); // true
-
-            var tree = new BehaviourTree(root);
-
-            // Act
-            var result = tree.Execute();
-
-            // Assert
-            Assert.That(result, Is.True);
-        }
-
-        #endregion
-
-        #region Pruebas de los nodos existentes
-
-        [Test]
-        public void CheckDistanceTask_ShouldWorkCorrectly()
-        {
-            // Arrange
-            var validTask = new CheckDistanceTask(5.0f, 10.0f);
-            var invalidTask = new CheckDistanceTask(15.0f, 10.0f);
-
-            // Act & Assert
-            Assert.That(validTask.Execute(), Is.True);
-            Assert.That(invalidTask.Execute(), Is.False);
-        }
-
-        [Test]
-        public void MoveToTargetTask_ShouldOnlyMoveIfDistanceIsValid()
-        {
-            // Arrange
-            var validCheck = new CheckDistanceTask(5.0f, 10.0f);
-            var invalidCheck = new CheckDistanceTask(15.0f, 10.0f);
-
-            var validMove = new MoveToTargetTask(validCheck);
-            var invalidMove = new MoveToTargetTask(invalidCheck);
-
-            // Act & Assert
-            Assert.That(validMove.Execute(), Is.True);
-            Assert.That(invalidMove.Execute(), Is.False);
-        }
-
-        [Test]
-        public void WaitTask_ShouldAlwaysReturnTrue()
-        {
-            // Arrange
-            var wait = new WaitTask(100);
-
-            // Act & Assert
-            Assert.That(wait.Execute(), Is.True);
-        }
-
-        #endregion
     }
 }

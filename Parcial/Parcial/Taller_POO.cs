@@ -1,65 +1,106 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Taller_POO
 {
-    using System;
-    using System.Collections.Generic;
-
-    // Clase base abstracta Node
     public abstract class Node
-    {
-        public abstract bool Execute();
-    }
-
-    // Clase Composite (para nodos que contienen hijos)
-    public abstract class Composite : Node
     {
         protected List<Node> children = new List<Node>();
 
-        public void AddChild(Node child)
+        public virtual void AddChild(Node child)
         {
             children.Add(child);
         }
+
+        public abstract bool Execute();
     }
 
-    // Clase Selector (intenta ejecutar hijos hasta que uno tenga éxito)
+    public class Root : Node
+    {
+        private Node child;
+
+        public void SetChild(Node node)
+        {
+            if (node is Root)
+                throw new InvalidOperationException("Root no puede tener otro Root como hijo.");
+            child = node;
+        }
+
+        public override bool Execute()
+        {
+            return child?.Execute() ?? false;
+        }
+    }
+
+    public abstract class Composite : Node
+    {
+        protected Composite() : base() { }
+
+        public override void AddChild(Node child)
+        {
+            if (child is Root)
+                throw new InvalidOperationException("Composite no puede tener Root como hijo.");
+            base.AddChild(child);
+        }
+    }
+
     public class Selector : Composite
     {
         public override bool Execute()
         {
             foreach (var child in children)
             {
-                if (child.Execute())
-                {
-                    return true;  // Un hijo tuvo éxito, se detiene el Selector
-                }
+                if (child.Execute()) return true;
             }
-            return false;  // Todos fallaron
+            return false;
         }
     }
 
-    // Clase Sequence (ejecuta todos los hijos en orden hasta que uno falle)
     public class Sequence : Composite
     {
         public override bool Execute()
         {
             foreach (var child in children)
             {
-                if (!child.Execute())
-                {
-                    return false;  // Un hijo falló, la secuencia no se completa
-                }
+                if (!child.Execute()) return false;
             }
-            return true;  // Todos tuvieron éxito
+            return true;
         }
     }
 
-    // Tareas concretas (nodos hoja)
-    public class CheckDistanceTask : Node
+    public abstract class TaskNode : Node
+    {
+        protected TaskNode() : base() { }
+
+        public override void AddChild(Node child)
+        {
+            throw new InvalidOperationException("Task no puede tener hijos.");
+        }
+    }
+
+    public class CheckEvenNumberTask : TaskNode
+    {
+        private int number;
+
+        public CheckEvenNumberTask(int num)
+        {
+            number = num;
+        }
+
+        public override bool Execute()
+        {
+            return number % 2 == 0;
+        }
+    }
+
+    public class CheckDistanceTask : TaskNode
     {
         private float objectDistance;
         private float validDistance;
+
+        public float ObjectDistance => objectDistance;
+        public float ValidDistance => validDistance;
 
         public CheckDistanceTask(float objDist, float validDist)
         {
@@ -69,61 +110,65 @@ namespace Taller_POO
 
         public override bool Execute()
         {
-            if (objectDistance <= validDistance)
+            return objectDistance <= validDistance;
+        }
+    }
+
+    public class MoveToTargetTask : TaskNode
+    {
+        private CheckDistanceTask checkDistanceTask;
+        private float position;
+        private float stepSize;
+
+        public MoveToTargetTask(CheckDistanceTask checkDistance, float step = 1.0f)
+        {
+            checkDistanceTask = checkDistance;
+            position = checkDistance.ObjectDistance;
+            stepSize = step;
+        }
+
+        public override bool Execute()
+        {
+            float targetPosition = checkDistanceTask.ValidDistance;
+
+            while (position < targetPosition)
             {
-                Console.WriteLine(" Objeto dentro de la distancia válida");
-                return true;
+                position += stepSize;
+                if (position > targetPosition) position = targetPosition;
             }
-            Console.WriteLine(" Objeto fuera de la distancia válida");
-            return false;
-        }
-    }
 
-    public class MoveTask : Node
-    {
-        public override bool Execute()
-        {
-            Console.WriteLine(" Moviendo al objetivo...");
             return true;
         }
     }
 
-    public class WaitTask : Node
+    public class WaitTask : TaskNode
     {
+        private int waitTime;
+
+        public WaitTask(int time)
+        {
+            waitTime = time;
+        }
+
         public override bool Execute()
         {
-            Console.WriteLine(" Esperando...");
+            Thread.Sleep(waitTime);
             return true;
         }
     }
 
-    class Taller_POO
+    public class BehaviourTree
     {
-        static void Main()
+        private Root root;
+
+        public BehaviourTree(Root rootNode)
         {
-            // Crear nodos
-            Sequence root = new Sequence();
+            root = rootNode ?? throw new ArgumentNullException(nameof(rootNode));
+        }
 
-            Selector selector = new Selector();
-            Sequence moveSequence = new Sequence();
-
-            CheckDistanceTask checkDistance = new CheckDistanceTask(7.0f, 5.0f);
-            MoveTask moveToTarget = new MoveTask();
-            WaitTask wait = new WaitTask();
-
-            // Configurar el árbol de comportamiento
-            moveSequence.AddChild(checkDistance);
-            moveSequence.AddChild(moveToTarget);  // Se mueve si está cerca
-
-            selector.AddChild(moveSequence);
-            selector.AddChild(wait);  // Si la distancia no es válida, espera
-
-            root.AddChild(selector);
-
-            // Ejecutar comportamiento
-            Console.WriteLine(" Ejecutando Árbol de Comportamiento:");
-            root.Execute();
+        public bool Execute()
+        {
+            return root.Execute();
         }
     }
-
 }
