@@ -7,6 +7,8 @@ namespace Taller_POO.Tests
     public class PruebasArbolDeComportamiento
     {
         [Test]
+
+        //Test 1
         public void ArbolDeComportamiento_SoloDebeTenerUnRoot()
         {
             Root root = new Root();
@@ -15,6 +17,8 @@ namespace Taller_POO.Tests
         }
 
         [Test]
+
+        //Test 2
         public void Root_SoloPuedeTenerUnHijo_YNoOtroRoot()
         {
             Root root = new Root();
@@ -29,12 +33,16 @@ namespace Taller_POO.Tests
         }
 
         [Test]
+
+        //Test 3
         public void Composite_NoPuedeSerInstanciadoDirectamente()
         {
             Assert.That(typeof(Composite).IsAbstract, "Composite debe ser una clase abstracta.");
         }
 
         [Test]
+
+        //Test 4
         public void Composite_NoPuedeTenerUnRootComoHijo()
         {
             Selector selector = new Selector();
@@ -45,12 +53,16 @@ namespace Taller_POO.Tests
         }
 
         [Test]
+
+        //Test 5
         public void TaskNode_NoPuedeSerInstanciadoDirectamente()
         {
             Assert.That(typeof(TaskNode).IsAbstract, "TaskNode debe ser una clase abstracta.");
         }
 
         [Test]
+
+        //Test 6
         public void TaskNode_NoPuedeTenerHijos()
         {
             CheckEvenNumberTask tarea = new CheckEvenNumberTask(4);
@@ -58,7 +70,10 @@ namespace Taller_POO.Tests
                 "Task no puede tener hijos.");
         }
 
+
         [Test]
+
+        //Test 7 
         public void Nodo_HerenciaCorrecta()
         {
             Assert.That(new Root(), Is.InstanceOf<Node>());
@@ -75,12 +90,16 @@ namespace Taller_POO.Tests
         }
 
         [Test]
+
+        //Test 8
         public void ArbolDeComportamiento_DebeTenerAlMenosUnRoot()
         {
             Assert.Throws<ArgumentNullException>(() => new BehaviourTree(null));
         }
 
         [Test]
+
+        // Test 9
         public void Nodo_Execute_RetornaValoresCorrectos()
         {
             Root root = new Root();
